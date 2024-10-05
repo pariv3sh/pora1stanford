@@ -1,0 +1,9 @@
+/home/parivesh/autonomy_ws/src/pora1stanford/build/s2_basic/CMakeFiles/uninstall.dir
+/home/parivesh/autonomy_ws/src/pora1stanford/build/s2_basic/CMakeFiles/s2_basic_uninstall.dir
+/home/parivesh/autonomy_ws/src/pora1stanford/build/s2_basic/CMakeFiles/test.dir
+/home/parivesh/autonomy_ws/src/pora1stanford/build/s2_basic/CMakeFiles/edit_cache.dir
+/home/parivesh/autonomy_ws/src/pora1stanford/build/s2_basic/CMakeFiles/rebuild_cache.dir
+/home/parivesh/autonomy_ws/src/pora1stanford/build/s2_basic/CMakeFiles/list_install_components.dir
+/home/parivesh/autonomy_ws/src/pora1stanford/build/s2_basic/CMakeFiles/install.dir
+/home/parivesh/autonomy_ws/src/pora1stanford/build/s2_basic/CMakeFiles/install/local.dir
+/home/parivesh/autonomy_ws/src/pora1stanford/build/s2_basic/CMakeFiles/install/strip.dir

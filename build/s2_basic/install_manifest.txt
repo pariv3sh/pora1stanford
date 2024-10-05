@@ -1,0 +1,15 @@
+/home/parivesh/autonomy_ws/src/pora1stanford/install/s2_basic/share/ament_index/resource_index/package_run_dependencies/s2_basic
+/home/parivesh/autonomy_ws/src/pora1stanford/install/s2_basic/share/ament_index/resource_index/parent_prefix_path/s2_basic
+/home/parivesh/autonomy_ws/src/pora1stanford/install/s2_basic/share/s2_basic/environment/ament_prefix_path.sh
+/home/parivesh/autonomy_ws/src/pora1stanford/install/s2_basic/share/s2_basic/environment/ament_prefix_path.dsv
+/home/parivesh/autonomy_ws/src/pora1stanford/install/s2_basic/share/s2_basic/environment/path.sh
+/home/parivesh/autonomy_ws/src/pora1stanford/install/s2_basic/share/s2_basic/environment/path.dsv
+/home/parivesh/autonomy_ws/src/pora1stanford/install/s2_basic/share/s2_basic/local_setup.bash
+/home/parivesh/autonomy_ws/src/pora1stanford/install/s2_basic/share/s2_basic/local_setup.sh
+/home/parivesh/autonomy_ws/src/pora1stanford/install/s2_basic/share/s2_basic/local_setup.zsh
+/home/parivesh/autonomy_ws/src/pora1stanford/install/s2_basic/share/s2_basic/local_setup.dsv
+/home/parivesh/autonomy_ws/src/pora1stanford/install/s2_basic/share/s2_basic/package.dsv
+/home/parivesh/autonomy_ws/src/pora1stanford/install/s2_basic/share/ament_index/resource_index/packages/s2_basic
+/home/parivesh/autonomy_ws/src/pora1stanford/install/s2_basic/share/s2_basic/cmake/s2_basicConfig.cmake
+/home/parivesh/autonomy_ws/src/pora1stanford/install/s2_basic/share/s2_basic/cmake/s2_basicConfig-version.cmake
+/home/parivesh/autonomy_ws/src/pora1stanford/install/s2_basic/share/s2_basic/package.xml
