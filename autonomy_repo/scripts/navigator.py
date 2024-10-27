@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 import scipy
 from scipy.interpolate import splev
 import typing as T
@@ -164,12 +163,6 @@ class AStar(object):
         return False
 
 
-@dataclass
-class LastControl:
-    V : float  = 0.
-    om : float = 0.
-    t : float  = 0.
-
 
 class TurtleBotNavigator(BaseNavigator):
     """ Heading controller
@@ -188,12 +181,12 @@ class TurtleBotNavigator(BaseNavigator):
         self.declare_parameter("kdx", 2.0)
         self.declare_parameter("kdy", 2.0)
 
-        self._prev_control = LastControl()
 
-    #def reset(self):
-    #    self._prev_control.V = 0.
-    #    self._prev_control.om = 0.
-    #    self._prev_control.t = 0.
+
+    def reset(self):
+        self.V_prev = 0.
+        self.om_prev = 0.
+        self.t_prev = 0.
 
     @property
     def kp(self) -> float:
@@ -249,16 +242,17 @@ class TurtleBotNavigator(BaseNavigator):
         """ compute control target like in hw2, p2_trajectory_tracking
             Use the following hints as a guide:
         """
+        V_prev = self.V_prev
         V_PREV_THRES = self.__class__.V_PREV_THRES
-        dt = t - self._prev_control.t
+        if V_prev < V_PREV_THRES:
+            V_prev = V_PREV_THRES
+
+        dt = t - self.t_prev
 
         x_d, xd_d, xdd_d, y_d, yd_d, ydd_d = \
                 self.get_desired_state(t, plan)
         x, y, th = state.x, state.y, state.theta
-        V_prev = self._prev_control.V
 
-        if V_prev < V_PREV_THRES:
-            V_prev = V_PREV_THRES
         ########## Code starts here ##########
         u1 = xdd_d \
                 + self.kpx * (x_d - state.x) \
@@ -273,15 +267,18 @@ class TurtleBotNavigator(BaseNavigator):
         [a, om] = np.linalg.solve(J, [u1, u2])
         V = V_prev + a * dt
 
+        if V < V_PREV_THRES:
+            V = V_PREV_THRES
+
         control = TurtleBotControl()
         control.v = V
         control.omega = om
         ########## Code ends here ##########
 
         # save the commands that were applied and the time
-        self._prev_control.V = V
-        self._prev_control.om = om
-        self._prev_control.t = t
+        self.V_prev = V
+        self.om_prev = om
+        self.t_prev = t
         return control 
 
 
@@ -297,18 +294,21 @@ class TurtleBotNavigator(BaseNavigator):
         #      with respect to the computed time stamp array.
 
         ts_n = np.shape(path)[0]
+        self.get_logger().info(f'N time steps: {ts_n=}')
         ts = np.zeros(ts_n)
         for i in range(ts_n-1):
             ts[i+1] = np.linalg.norm(path[i+1] - path[i]) / v_desired
             ts[i+1] = ts[i+1] + ts[i]
         path_x_spline = scipy.interpolate.splrep(ts, path[: ,0], k=3, s=spline_alpha)
         path_y_spline = scipy.interpolate.splrep(ts, path[: ,1], k=3, s=spline_alpha)
-
+       
+        duration = ts[-1]
+        self.get_logger().info(f'Duration is {duration}')
         return TrajectoryPlan(
             path=path,
             path_x_spline=path_x_spline,
             path_y_spline=path_y_spline,
-            duration=ts[-1],
+            duration=duration,
         )
 
     
@@ -319,8 +319,11 @@ class TurtleBotNavigator(BaseNavigator):
         resolution: float,
         horizon: float,
     ) -> T.Optional[TrajectoryPlan]:
+
+        logger = self.get_logger()
+        logger.info(f'Invoked with {state=}, {goal=}, {resolution=}, {horizon=}')
         astar = AStar(
-            (state.x, state.y), 
+            (state.x - horizon, state.y - horizon), 
             (state.x + horizon, state.y + horizon), 
             (state.x, state.y), 
             (goal.x, goal.y),
@@ -329,11 +332,12 @@ class TurtleBotNavigator(BaseNavigator):
         )
 
         status = astar.solve()
+        logger.info(f'{status=}, {astar.path=}')
         if not status or len(astar.path) < 4:
-            print('path finding failed..')
+            logger.error(f'path finding failed..')
             return None
 
-        #self.reset()
+        self.reset()
         return self.compute_smooth_plan(astar.path)
 
 
