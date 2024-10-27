@@ -163,9 +163,19 @@ class AStar(object):
                 self.est_cost_through[n] = self.cost_to_arrive[n] + self.distance(n,self.x_goal)
         return False
 
+
+@dataclass
+class LastControl:
+    V : float  = 0.
+    om : float = 0.
+    t : float  = 0.
+
+
 class TurtleBotNavigator(BaseNavigator):
     """ Heading controller
     """
+    V_PREV_THRES = 0.0001
+
     def __init__(self):
         super().__init__()
 
@@ -173,18 +183,17 @@ class TurtleBotNavigator(BaseNavigator):
         self.declare_parameter("kp", 2.0)
 
         # trajectory params closed loop
-        self.V_PREV_THRES = 0.0001
         self.declare_parameter("kpx", 2.0)
         self.declare_parameter("kpy", 2.0)
         self.declare_parameter("kdx", 2.0)
         self.declare_parameter("kdy", 2.0)
 
-        self.reset()
+        self._prev_control = LastControl()
 
-    def reset(self):
-        self.V_prev = 0.
-        self.om_prev = 0.
-        self.t_prev = 0.
+    #def reset(self):
+    #    self._prev_control.V = 0.
+    #    self._prev_control.om = 0.
+    #    self._prev_control.t = 0.
 
     @property
     def kp(self) -> float:
@@ -240,24 +249,29 @@ class TurtleBotNavigator(BaseNavigator):
         """ compute control target like in hw2, p2_trajectory_tracking
             Use the following hints as a guide:
         """
-        dt = t - self.t_prev
+        V_PREV_THRES = self.__class__.V_PREV_THRES
+        dt = t - self._prev_control.t
+
         x_d, xd_d, xdd_d, y_d, yd_d, ydd_d = \
                 self.get_desired_state(t, plan)
         x, y, th = state.x, state.y, state.theta
-        
-        V_PREV_THRES = self.V_PREV_THRES
+        V_prev = self._prev_control.V
 
-        if self.V_prev < V_PREV_THRES:
-            self.V_prev = V_PREV_THRES
+        if V_prev < V_PREV_THRES:
+            V_prev = V_PREV_THRES
         ########## Code starts here ##########
-        u1 = xdd_d + self.kpx * (x_d - x) + self.kdx * (xd_d - self.V_prev * np.cos(th))
-        u2 = ydd_d + self.kpy * (y_d - y) + self.kdy * (yd_d - self.V_prev * np.sin(th))
+        u1 = xdd_d \
+                + self.kpx * (x_d - state.x) \
+                + self.kdx * (xd_d - V_prev * np.cos(th))
+        u2 = ydd_d \
+                + self.kpy * (y_d - state.y) \
+                + self.kdy * (yd_d - V_prev * np.sin(th))
         
-        J = [[np.cos(th), -self.V_prev * np.sin(th)], [np.sin(th), self.V_prev * np.cos(th)]]
+        J = [[np.cos(th), -V_prev * np.sin(th)], 
+             [np.sin(th), V_prev * np.cos(th)]]
 
-        print(J) 
         [a, om] = np.linalg.solve(J, [u1, u2])
-        V = self.V_prev + a * dt
+        V = V_prev + a * dt
 
         control = TurtleBotControl()
         control.v = V
@@ -265,9 +279,9 @@ class TurtleBotNavigator(BaseNavigator):
         ########## Code ends here ##########
 
         # save the commands that were applied and the time
-        self.t_prev = t
-        self.V_prev = V
-        self.om_prev = om
+        self._prev_control.V = V
+        self._prev_control.om = om
+        self._prev_control.t = t
         return control 
 
 
@@ -319,7 +333,7 @@ class TurtleBotNavigator(BaseNavigator):
             print('path finding failed..')
             return None
 
-        self.reset()
+        #self.reset()
         return self.compute_smooth_plan(astar.path)
 
 
