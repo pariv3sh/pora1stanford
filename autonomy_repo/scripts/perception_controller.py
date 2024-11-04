@@ -40,10 +40,10 @@ class PerceptionController(BaseController):
             # see if we are in detection delay: active should be True 
             # and 
             # stop sign detected stop robot set active to False
-            logger.info(f'Stop sign is detected..Yahoo')
+            logger.info(f'Stop sign detected')
             if not self._last_stop_detection_time:
                 # first time stop encounter stop the bot
-                logger.info('Set Active=FALSE')
+                # logger.info('Set Active=FALSE')
                 self.active = False
             else:
                 duration = timenow(self) - self._last_stop_detection_time
@@ -52,7 +52,6 @@ class PerceptionController(BaseController):
                     # reactivate
                     self.active = True
                     self._last_stop_detection_time = None
-                    logger.info(f'Reset active to {self.active=}')
         else:
             #logger.info('Stop not detected..')
             if self._last_stop_detection_time:
