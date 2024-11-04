@@ -25,10 +25,10 @@ class PerceptionController(BaseController):
         self._last_stop_detection_time = None
 
         self.detector_subscription = self.create_subscription(
-            Bool,          # Message type
-            'detector_bool',       # Topic name
-            self.stop_cb,  # Callback function
-            10               # QoS profile (queue size)
+            Bool,          
+            'detector_bool',
+            self.stop_cb,  
+            10           
         )
 
     def stop_cb(self, msg: Bool) -> None:
@@ -45,18 +45,12 @@ class PerceptionController(BaseController):
                 # first time stop encounter stop the bot
                 logger.info('Set Active=FALSE')
                 self.active = False
-                #self.set_parameters(
-                #    [rclpy.Parameter("active", value=False)]
-                #)
             else:
                 duration = timenow(self) - self._last_stop_detection_time
                 if duration > STOP_DETECTION_DELAY:
                     # hopefully stop sign is not visible any more 
                     # reactivate
                     self.active = True
-                    #self.set_parameters(
-                    #    [rclpy.Parameter("active", value=True)]
-                    #)
                     self._last_stop_detection_time = None
                     logger.info(f'Reset active to {self.active=}')
         else:
@@ -91,7 +85,7 @@ class PerceptionController(BaseController):
 
         if is_active:
             rctrl.v = 0.
-            rctrl.omega = 0.5
+            rctrl.omega = ANG_VELOCITY
         else:
             logger.debug(f'False path invoked {self.active=}')
             rctrl.v = 0.
@@ -103,7 +97,6 @@ class PerceptionController(BaseController):
             # 
             if not self._last_stop_detection_time:
                 self._last_stop_detection_time = timenow(self)
-
 
         return rctrl
 
