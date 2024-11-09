@@ -1,4 +1,0 @@
-matplotlib>=3.3.3
-numpy==1.23.5
-scipy>=1.11.3
-six>=1.15.0

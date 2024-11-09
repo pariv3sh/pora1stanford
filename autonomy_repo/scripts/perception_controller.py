@@ -9,7 +9,6 @@ from asl_tb3_lib.math_utils import wrap_angle
 from asl_tb3_msgs.msg import TurtleBotControl, TurtleBotState
 
 ANG_VELOCITY = 0.5
-PAUSE_TIMEOUT = 5.0 # how long to pause 
 STOP_DETECTION_DELAY = 5.0 # dont resume detection until these number of seconds elapsed from last detected
 
 def timenow(node): return node.get_clock().now().nanoseconds/1e9
@@ -38,8 +37,7 @@ class PerceptionController(BaseController):
         logger = self.get_logger() 
         if stop_sign_detected:
             # see if we are in detection delay: active should be True 
-            # and 
-            # stop sign detected stop robot set active to False
+            # and stop sign detected stop robot set active to False
             logger.info(f'Stop sign detected')
             if not self._last_stop_detection_time:
                 # first time stop encounter stop the bot
@@ -49,7 +47,6 @@ class PerceptionController(BaseController):
                 duration = timenow(self) - self._last_stop_detection_time
                 if duration > STOP_DETECTION_DELAY:
                     # hopefully stop sign is not visible any more 
-                    # reactivate
                     self.active = True
                     self._last_stop_detection_time = None
         else:
