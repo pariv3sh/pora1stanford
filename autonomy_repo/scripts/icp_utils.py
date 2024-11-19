@@ -2,7 +2,6 @@ import numpy as np
 import open3d as o3d
 from sklearn.neighbors import NearestNeighbors
 
-
 def best_fit_transform(A: np.ndarray, B: np.ndarray):
     '''
     Calculates the least-squares best-fit transform that maps corresponding points A to B in m spatial dimensions
@@ -97,7 +96,7 @@ def icp(
 
     prev_error = 0
     ########### YOUR CODE STARTS HERE ###########
-    for i in trange(max_iterations):
+    for i in range(max_iterations):
         dist, indices = nearest_neighbor(src.T[:, :m], dst.T[:, :m], knn_radius)
         dst_wrt_src = dst.T[indices]
         T, R, t = best_fit_transform(src.T, dst_wrt_src)

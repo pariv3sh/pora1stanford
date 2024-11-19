@@ -15,7 +15,7 @@ from sensor_msgs_py import point_cloud2
 from tf2_ros import Buffer, TransformListener
 
 from icp_utils import icp, open3d_icp
-
+import functools
 
 def get_pcd_array_from_point_cloud(pcd_msg: PointCloud2):
     pcd = point_cloud2.read_points_list(pcd_msg, field_names=["x", "y", "z"], skip_nans=True)
@@ -43,7 +43,7 @@ class ICPNode(Node):
         self.pose = None
         self.lidar_pose = None
         self.transformation = np.eye(4)
-        self.use_open3d = True
+        self.use_open3d = False
         
         self.pcd_sub = self.create_subscription(
             PointCloud2,          
@@ -115,7 +115,7 @@ class ICPNode(Node):
 
         ### TODO: Task 2.5 ###
         curr_pts = get_pcd_array_from_point_cloud(msg) # Nx3
-        logger.info(f'{curr_pts.shape}')
+        logger.debug(f'{curr_pts.shape}')
         transformed_pts = curr_pts @ self.lidar_pose[:3, :3] + self.lidar_pose[:3, 3]  
 
         ### Task 2.5 ###
@@ -124,12 +124,22 @@ class ICPNode(Node):
 
         ### TODO: Task 2.6 ###
         pc_curr = pc_curr.uniform_down_sample(10)
-        icpfunc = icp if not self.use_open3d else open3d_icp
-        self.transformation = icpfunc(self.prev_pcd, pc_curr, self.transformation)
+
+        if self.use_open3d:
+            icpfunc = functools.partial(open3d_icp, self.prev_pcd, pc_curr, self.transformation)
+        else:
+            icpfunc = functools.partial(icp, 
+                    np.asarray(self.prev_pcd.points), 
+                    np.asarray(pc_curr.points), 
+                    self.transformation) 
+
+        self.transformation = icpfunc() 
         ### Task 2.6 ###
         
         ### TODO: Task 2.7 ###
         self.pose = self.pose @ self.transformation
+
+        logger.info(f'{self.pose=}')
          
         ### Task 2.7 ###
         
