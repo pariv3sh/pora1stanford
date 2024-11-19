@@ -43,7 +43,7 @@ class ICPNode(Node):
         self.pose = None
         self.lidar_pose = None
         self.transformation = np.eye(4)
-        self.use_open3d = False
+        self.use_open3d = True
         
         self.pcd_sub = self.create_subscription(
             PointCloud2,          
@@ -116,8 +116,8 @@ class ICPNode(Node):
         ### TODO: Task 2.5 ###
         curr_pts = get_pcd_array_from_point_cloud(msg) # Nx3
         logger.debug(f'{curr_pts.shape}')
-        transformed_pts = curr_pts @ self.lidar_pose[:3, :3] + self.lidar_pose[:3, 3]  
-
+        transformed_pts =  self.lidar_pose[:3, :3] @ curr_pts.T + self.lidar_pose[:3, 3].reshape(-1, 1)  
+        transformed_pts = transformed_pts.T 
         ### Task 2.5 ###
         pc_curr = o3d.geometry.PointCloud()
         pc_curr.points = o3d.utility.Vector3dVector(transformed_pts)
@@ -126,11 +126,14 @@ class ICPNode(Node):
         pc_curr = pc_curr.uniform_down_sample(10)
 
         if self.use_open3d:
-            icpfunc = functools.partial(open3d_icp, self.prev_pcd, pc_curr, self.transformation)
+            icpfunc = functools.partial(open3d_icp, 
+                    pc_curr, 
+                    self.prev_pcd, 
+                    self.transformation)
         else:
             icpfunc = functools.partial(icp, 
-                    np.asarray(self.prev_pcd.points), 
                     np.asarray(pc_curr.points), 
+                    np.asarray(self.prev_pcd.points), 
                     self.transformation) 
 
         self.transformation = icpfunc() 
@@ -139,7 +142,7 @@ class ICPNode(Node):
         ### TODO: Task 2.7 ###
         self.pose = self.pose @ self.transformation
 
-        logger.info(f'{self.pose=}')
+        #logger.info(f'{self.pose=}')
          
         ### Task 2.7 ###
         

@@ -12,7 +12,7 @@ def generate_launch_description():
 
     return LaunchDescription(
         [
-            DeclareLaunchArgument("use_sim_time", default_value="true"),
+            DeclareLaunchArgument("use_sim_time", default_value="False"),
             IncludeLaunchDescription(
                 PathJoinSubstitution(
                     [FindPackageShare("asl_tb3_sim"), "launch", "rviz.launch.py"]
@@ -28,10 +28,12 @@ def generate_launch_description():
                     "use_sim_time": use_sim_time,
                 }.items(),
             ),
-            # student's heading controller node
             Node(
                 executable="icp_node.py",
                 package="autonomy_repo",
+                parameters=[
+                    {"use_sim_time": False},
+                ],
             ),
         ]
     )
