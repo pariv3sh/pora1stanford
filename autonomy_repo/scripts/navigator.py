@@ -180,9 +180,7 @@ class TurtleBotNavigator(BaseNavigator):
         self.declare_parameter("kpy", 2.0)
         self.declare_parameter("kdx", 2.0)
         self.declare_parameter("kdy", 2.0)
-
-
-
+    
     def reset(self):
         self.V_prev = 0.
         self.om_prev = 0.
