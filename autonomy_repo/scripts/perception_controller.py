@@ -19,8 +19,6 @@ class PerceptionController(BaseController):
     def __init__(self):
         super().__init__('perception_controller')
         self.declare_parameter("active", True)
-        self.clock_start = False
-        self._stop_detected = False 
         self._last_stop_detection_time = None
 
         self.detector_subscription = self.create_subscription(

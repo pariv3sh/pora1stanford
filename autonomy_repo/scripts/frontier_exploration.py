@@ -19,7 +19,7 @@ import time
 
 # Dontt resume detection until STOP_DETECTION_DELAY
 # number of seconds elapsed from last detected
-STOP_DETECTION_DELAY = 5.0
+STOP_TIME = 5.0
 
 def explore(occupancy, curr_pos):
     """ returns potential states to explore
@@ -41,7 +41,7 @@ def explore(occupancy, curr_pos):
 
     ########################### Code starts here ###########################
     unk_result = convolve2d(occupancy.probs < 0., kernel, mode='same', boundary='fill')
-    occ_result = convolve2d(occupancy.probs > 0., kernel, mode='same', boundary='fill')
+    occ_result = convolve2d(occupancy.probs >= 0.5, kernel, mode='same', boundary='fill')
     free_result = convolve2d(occupancy.probs == 0., kernel, mode='same', boundary='fill')
     UNK_THRESH = 0.2 * t_win_entries
     FREE_THRESH = 0.3 * t_win_entries
@@ -92,7 +92,7 @@ class FrontierExplorer(Node):
             10
         )
 
-        self.state_sub = self.create_subscription(
+        self.stop_sub = self.create_subscription(
             Bool, 
             "/detector_bool", 
             self.stop_detection_callback, 
@@ -109,67 +109,58 @@ class FrontierExplorer(Node):
         self.curr_state = None # current state
         self.occupancy = None #occupancy grid
         self._in_navigation = False
-        self._stop_detected = False 
-        self._last_stop_detection_time = None
+        self._stop_sign_detected = False
+        self._in_delay = False
+        self._timer_start = None
+        #self._stop_timer = self.create_timer(STOP_TIME, 
+        #            self.stop_timer_callback)
 
-    @property
-    def active(self) -> bool:
-        return self.get_parameter("active").value
+        # cancel to begin - dont keep calling callback
+        # will be reset on /detector_bool callback when stop sign is detected
+        #self._stop_timer.cancel()
 
-    @active.setter
-    def active(self, new_val):
-        self.set_parameters(
-            [rclpy.Parameter("active", value=new_val)]
-        )
+
+    #def stop_timer_callback(self) -> None:
+    #    self.get_logger().info('Stop sign detecting done.. cancel timer')
+    #    self._stop_sign_detected = False
+    #    self._in_delay = False
+    #    self._stop_timer.cancel() 
+    #    self._explore_publish()
 
     def stop_detection_callback(self, msg) -> None:
         """ Callback invoked when stop sign is detected
         """
         stop_sign_detected = msg.data
-        logger = self.get_logger() 
+        if self._in_delay:
+            if not self._timer_start:
+                self.get_logger().info('NOOOO')
+                return 
+            self.get_logger().info(f'In stop detection delay.') 
+            if timenow(self) - self._timer_start > STOP_TIME:
+                self._in_delay = False
+                self._explore_publish()
+            return
         if stop_sign_detected:
-            if not self._last_stop_detection_time:
-                logger.info(f'Stop sign detected..pausing')
-                self.active = False
-                self._last_stop_detection_time = timenow(self)
-            else:
-                duration = timenow(self) - self._last_stop_detection_time
-                if duration > STOP_DETECTION_DELAY:
-                    logger.info(f'Stop sign detected..UNPAUSING')
-                    self.active = True
-                    self._last_stop_detection_time = None
-        else:
-            if self._last_stop_detection_time:
-                duration = timenow(self) - self._last_stop_detection_time
-                logger.info(f'Stop undetected for {duration=}')
-                if duration < STOP_DETECTION_DELAY:
-                    return
-            self._last_stop_detection_time = None
-            self.active = True #call setter
-            
+            self.get_logger().info('Stop sign detected')
+            self._timer_start = timenow(self) 
+            self._in_delay = True
+            self._publish_goal(self.curr_state)
+        
+       
 
     def state_callback(self, msg) -> None:
         #self.get_logger().info(f'state callback {msg}')
         self.curr_state = np.array([msg.x, msg.y])
        
-    def _publish_goal(self, chosen_state): 
-        self.get_logger().info(f'Publishing new goal {chosen_state} {inspect.stack()[1][3]}')
+    def _publish_goal(self, state):
         gpos = TurtleBotState()
-        gpos.x = chosen_state[0]
-        gpos.y = chosen_state[1]
+        gpos.x = state[0]
+        gpos.y = state[1]
         self.goal_pub.publish(gpos) 
-        
-    def nav_callback(self, msg: Bool) -> None:
-        """ publisher Callback received from nav_success 
-        """
-        logger = self.get_logger() 
+
+    def _explore_publish(self):
         occupancy, curr_state = self.occupancy, self.curr_state
         resolution = occupancy.resolution
-
-        if not self.active:
-            logger.info('Stopped exploring..In stop sign detection delay')
-            return
-
         cs = np.array([
             occupancy.size_xy[1]-(curr_state[1]/resolution), 
             curr_state[0]/resolution
@@ -178,10 +169,21 @@ class FrontierExplorer(Node):
                 occupancy.grid2state(cs)) 
 
         if state_xy is None:
-            logger.info(f'Finished exploring..')
+            self.get_logger().info(f'Finished exploring..')
             return
+        self._publish_goal(chosen_state)
         
-        self._publish_goal(chosen_state) 
+
+        
+    def nav_callback(self, msg: Bool) -> None:
+        """ publisher Callback received from nav_success 
+        """
+        logger = self.get_logger() 
+        if not self._in_delay:
+            #logger.info('Stopped exploring..In stop sign detection delay')
+            return
+
+        self._explore_publish()
 
 
     def map_callback(self, msg: OccupancyGrid) -> None:
@@ -194,7 +196,7 @@ class FrontierExplorer(Node):
             resolution=msg.info.resolution,
             size_xy=np.array([msg.info.width, msg.info.height]),
             origin_xy=np.array([msg.info.origin.position.x, msg.info.origin.position.y]),
-            window_size=9,
+            window_size=13,
             probs=msg.data,
         )
        
@@ -208,21 +210,7 @@ class FrontierExplorer(Node):
 
         self._in_navigation = True
         logger.info(f'Starting map exploration from {self.curr_state}')
-        occupancy, curr_state = self.occupancy, self.curr_state
-        resolution = occupancy.resolution
-
-        cs = np.array([
-            occupancy.size_xy[1]-(curr_state[1]/resolution), 
-            curr_state[0]/resolution
-        ])
-        state_xy, chosen_state = explore(occupancy, 
-                occupancy.grid2state(cs)) 
-
-        if state_xy is None:
-            logger.info(f'Finished exploring..')
-            return
-
-        self._publish_goal(chosen_state)
+        self._explore_publish()
         
 
 if __name__ == '__main__':
