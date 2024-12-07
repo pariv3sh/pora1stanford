@@ -1,1 +1,1 @@
-# Principles of Robot autonomy-I course work - standford
+# Principles of Robot autonomy-I course work - stanford
